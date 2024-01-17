@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include <cstdio>
+#include <algorithm>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 450
@@ -32,6 +33,12 @@ void drawFrame(GameState state) {
   }
 }
 
+GameState nextState(GameState *state) {
+    int maxBallY = BAT_LINE - (BALL_RADIUS); // TODO: convert this to a constant as well
+    int ballY = std::min(state->ballY + 10, maxBallY);
+    return GameState { state->ballX, ballY, state->batX };
+}
+
 int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
@@ -44,6 +51,7 @@ int main(int argc, char *argv[]) {
     ClearBackground(RAYWHITE);
     drawFrame(state);
     EndDrawing();
+    state = nextState(&state);
   }
 
   CloseWindow();
