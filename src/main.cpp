@@ -1,6 +1,5 @@
+#include "entity.h"
 #include "raylib.h"
-#include <cstdio>
-#include <algorithm>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 450
@@ -13,45 +12,36 @@
 #define BALL_COLOR RED
 
 #define BAT_COLOR BLACK
-
-struct GameState {
-  float ballX;
-  int ballY;
-  float batX;
-};
-
-void drawFrame(GameState state) {
-  {
-    // draw bat
-    float x_corner = state.batX - (BAT_WIDTH / 2);
-    Rectangle rec = {x_corner, BAT_LINE, BAT_WIDTH, BAT_HEIGHT};
-    DrawRectangleRec(rec, BAT_COLOR);
-  }
-  {
-    // draw ball
-    DrawCircle(state.ballX, state.ballY, BALL_RADIUS, BALL_COLOR);
-  }
-}
-
-GameState nextState(GameState *state) {
-    int maxBallY = BAT_LINE - (BALL_RADIUS); // TODO: convert this to a constant as well
-    int ballY = std::min(state->ballY + 10, maxBallY);
-    return GameState { state->ballX, ballY, state->batX };
-}
+#define TARGET_FRAME_RATE 60
 
 int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
-  SetTargetFPS(60);
-  InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My pong");
   float centerX = GetScreenWidth() / 2;
-  GameState state { centerX, 50, centerX };
+  Gravity *gravity = new Gravity();
+
+  Ball *ball = new Ball({centerX, 50}, 10, RED, 15);
+  ball->applyContiniously(gravity);
+  Bat *bat = new Bat({centerX, BAT_LINE}, BAT_COLOR, BAT_WIDTH, BAT_HEIGHT);
+
+  std::vector<Entity *> entities;
+  entities.push_back(ball);
+  entities.push_back(bat);
+
+  SetTargetFPS(TARGET_FRAME_RATE);
+  InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My pong");
+  float tickSpeed = 1.0 / TARGET_FRAME_RATE;
   while (!WindowShouldClose()) {
+    for (Entity *entity : entities) {
+      entity->update(tickSpeed);
+    }
+
     BeginDrawing();
     ClearBackground(RAYWHITE);
-    drawFrame(state);
+    for (Entity *entity : entities) {
+      entity->draw();
+    }
     EndDrawing();
-    state = nextState(&state);
   }
 
   CloseWindow();
