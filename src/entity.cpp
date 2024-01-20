@@ -1,5 +1,6 @@
 #include "entity.h"
 #include "raylib.h"
+#include <cmath>
 #include <cstddef>
 #include <cstdio>
 #include <sstream>
@@ -18,11 +19,28 @@ Vector2 inline scalerMul(const Vector2 *vec, float s) {
   return Vector2{vec->x * s, vec->y * s};
 }
 
-Vec2::Vec2(float x, float y) : x(x), y(y) {}
-Vector2 Vec2::toRaylibVec() {
-  return {this->x, this->y};
+Vector::Vector(float x, float y) : x(x), y(y) {}
+Vector2 Vector::toRaylibVec() { return {this->x, this->y}; }
+
+inline float Vector::lenght() { return std::sqrt(x * x + y * y); }
+
+Vector operator+(const Vector &vec1, const Vector &vec2) {
+  return {vec1.x + vec2.x, vec1.y + vec2.y};
 }
 
+Vector operator-(const Vector &vec1, const Vector &vec2) {
+  return {vec1.x - vec2.x, vec1.y - vec2.y};
+}
+
+Vector operator*(const Vector &vec1, const Vector &vec2) {
+  return {vec1.x * vec2.x, vec1.y * vec2.y};
+}
+
+Vector operator*(const Vector &vec, float scalar) {
+  return {vec.x * scalar, vec.y * scalar};
+}
+
+// FIXME: remove these
 float Vector2Length(const Vector2 &vec) {
   return std::sqrt(vec.x * vec.x + vec.y * vec.y);
 }
@@ -38,13 +56,15 @@ float Vector2DotProduct(const Vector2 &vec1, const Vector2 &vec2) {
   return vec1.x * vec2.x + vec1.y * vec2.y;
 }
 
-inline Vector2 Gravity::getAcceleration() { return {0, Gravity::GRAVITY}; }
+// --
+
+inline Vector Gravity::getAcceleration() { return {0, Gravity::GRAVITY}; }
 
 #ifdef DEBUG
 void drawDebug(Entity *entity) {
   Rectangle bb = entity->getBoundingBox();
   DrawRectangleLinesEx(bb, 0.5, BLACK);
-  Vector2 *velocity = entity->getVelocity();
+  Vector *velocity = entity->getVelocity();
   std::ostringstream oss;
   oss << "Velocity (" << velocity->x << "," << velocity->y << ")";
   std::string str = oss.str();
@@ -53,38 +73,36 @@ void drawDebug(Entity *entity) {
 #endif
 
 void Gravity::apply(Entity *entity, float time) {
-  Vector2 ut = scalerMul(entity->getVelocity(), time);
-  Vector2 gravity = getAcceleration();
-  Vector2 at_sq = scalerMul(&gravity, time * time * 0.5);
-  Vector2 displacement = vecSum(&ut, &at_sq);
-  entity->updatePosition(vecSum(&displacement, entity->getPosition()));
-
-  // u + at
-  Vector2 at = scalerMul(&gravity, time);
-  entity->updateVelocity(vecSum(entity->getVelocity(), &at));
+  Vector gravity = getAcceleration();
+  Vector displacement =
+      (*entity->getVelocity()) * time + gravity * time * time * 0.5;
+  entity->updatePosition(displacement + (*entity->getPosition()));
+  entity->updateVelocity((*entity->getVelocity()) + gravity * time);
 }
 
-ReactionForce::ReactionForce(Entity *target) : target(target){};
+// ReactionForce::ReactionForce(Entity *target) : target(target){};
 
-Vector2 ReactionForce::getAcceleration() {
-  Vector2 entityAcc = target->getAccelerationExcept(this);
-  return scalerMul(&entityAcc, -1);
-}
+// Vector2 ReactionForce::getAcceleration() {
+//   Vector2 entityAcc = target->getAccelerationExcept(this);
+//   return scalerMul(&entityAcc, -1);
+// }
 
-void ReactionForce::apply(Entity *entity, float time) {
-  const float RESTITUTION_COEF = 0.8f;
-  // stop the object from moving
-  // NOTE: this means reactions must be the first force to be applied, this is
-  // correct since Reaction is a nextFrame force
-  entity->updateVelocity({0, 0});
-  Vector2 acc = getAcceleration();
-  Vector2 displacement = scalerMul(&acc, time * time);
-  entity->updatePosition(vecSum(&displacement, entity->getPosition()));
-  entity->updateVelocity(scalerMul(&acc, time));
-}
+// void ReactionForce::apply(Entity *entity, float time) {
+//   const float RESTITUTION_COEF = 0.8f;
+//   // stop the object from moving
+//   // NOTE: this means reactions must be the first force to be applied, this
+//   is
+//   // correct since Reaction is a nextFrame force
+//   entity->updateVelocity({0, 0});
+//   Vector2 acc = getAcceleration();
+//   Vector2 displacement = scalerMul(&acc, time * time);
+//   entity->updatePosition(vecSum(&displacement, entity->getPosition()));
+//   entity->updateVelocity(scalerMul(&acc, time));
+// }
 
-Entity::Entity(Vector2 startingPos, long mass)
-    : position(startingPos), mass(mass) {}
+Entity::Entity(Vector startingPos, long mass)
+    : position(startingPos), velocity(0, 0), mass(mass) {}
+
 void Entity::applyContiniously(ForceApplicator *force) {
   continiousForces.push_back(force);
 }
@@ -107,39 +125,39 @@ void Entity::update(float time) {
 
 ForceApplicator::~ForceApplicator() {}
 
-Vector2 Entity::getAccelerationExcept(const ForceApplicator *except) {
-  Vector2 acceleration = {0, 0};
-  for (ForceApplicator *force : nextFrameForces) {
-    if (force == except) {
-      continue;
-    }
-    Vector2 fa = force->getAcceleration();
-    acceleration = vecSum(&acceleration, &fa);
-  }
-  for (ForceApplicator *force : continiousForces) {
-    if (force == except) {
-      continue;
-    }
-    Vector2 fa = force->getAcceleration();
-    acceleration = vecSum(&acceleration, &fa);
-  }
-  return acceleration;
-}
+// Vector2 Entity::getAccelerationExcept(const ForceApplicator *except) {
+//   Vector2 acceleration = {0, 0};
+//   for (ForceApplicator *force : nextFrameForces) {
+//     if (force == except) {
+//       continue;
+//     }
+//     Vector2 fa = force->getAcceleration();
+//     acceleration = vecSum(&acceleration, &fa);
+//   }
+//   for (ForceApplicator *force : continiousForces) {
+//     if (force == except) {
+//       continue;
+//     }
+//     Vector2 fa = force->getAcceleration();
+//     acceleration = vecSum(&acceleration, &fa);
+//   }
+//   return acceleration;
+// }
 
 long Entity::getMass() { return mass; }
 
-Vector2 *Entity::getPosition() { return &position; }
+Vector *Entity::getPosition() { return &position; }
 
-Vector2 *Entity::getVelocity() { return &velocity; }
-void Entity::updatePosition(Vector2 pos) { position = pos; }
+Vector *Entity::getVelocity() { return &velocity; }
+void Entity::updatePosition(Vector pos) { position = pos; }
 
-void Entity::updateVelocity(Vector2 vel) { velocity = vel; }
+void Entity::updateVelocity(Vector vel) { velocity = vel; }
 
-Ball::Ball(Vector2 startingPos, long mass, Color color, float radius)
+Ball::Ball(Vector startingPos, long mass, Color color, float radius)
     : Entity(startingPos, mass), color(color), radius(radius) {}
 
 Rectangle Ball::getBoundingBox() {
-  Vector2 *center = this->getPosition();
+  Vector *center = this->getPosition();
   float radius = this->radius;
   float x = center->x - radius;
   float y = center->y - radius;
@@ -147,7 +165,7 @@ Rectangle Ball::getBoundingBox() {
 }
 
 void Ball::draw() {
-  Vector2 *position = this->getPosition();
+  Vector *position = this->getPosition();
   DrawCircle(position->x, position->y, this->radius, this->color);
 #ifdef DEBUG
   drawDebug(this);
@@ -155,10 +173,10 @@ void Ball::draw() {
 }
 
 // should the mass be 0 or inf
-Bat::Bat(Vector2 startingPos, Color color, float width, float height)
+Bat::Bat(Vector startingPos, Color color, float width, float height)
     : Entity(startingPos, 0), color(color), width(width), height(height) {}
 void Bat::draw() {
-  Vector2 *position = this->getPosition();
+  Vector *position = this->getPosition();
   Rectangle rec = {position->x, position->y, this->width, this->height};
   DrawRectangleRec(rec, this->color);
 #ifdef DEBUG
@@ -168,7 +186,7 @@ void Bat::draw() {
 
 Rectangle Bat::getBoundingBox() {
   // FIXME: this part is common with draw
-  Vector2 *position = this->getPosition();
+  Vector *position = this->getPosition();
   return {position->x, position->y, this->width, this->height};
 }
 
@@ -193,19 +211,19 @@ bool isColliding(Entity *e1, Entity *e2) {
   return isOverlapping(&bb1, &bb2);
 }
 
-void applyReactionForces(const std::vector<Entity *> *entities) {
-  for (size_t i = 0; i < entities->size(); i++) {
-    for (size_t j = i + 1; j < entities->size(); j++) {
-      Entity *e1 = entities->at(i);
-      Entity *e2 = entities->at(j);
-      if (!isColliding(e1, e2)) {
-        continue;
-      }
-      // FIXME: when we are poping next frame force we must deallocate these
-      ReactionForce *r1 = new ReactionForce(e2);
-      ReactionForce *r2 = new ReactionForce(e1);
-      e2->applyNextFrame(r1);
-      e1->applyNextFrame(r2);
-    }
-  }
-}
+// void applyReactionForces(const std::vector<Entity *> *entities) {
+//   for (size_t i = 0; i < entities->size(); i++) {
+//     for (size_t j = i + 1; j < entities->size(); j++) {
+//       Entity *e1 = entities->at(i);
+//       Entity *e2 = entities->at(j);
+//       if (!isColliding(e1, e2)) {
+//         continue;
+//       }
+//       // FIXME: when we are poping next frame force we must deallocate these
+//       ReactionForce *r1 = new ReactionForce(e2);
+//       ReactionForce *r2 = new ReactionForce(e1);
+//       e2->applyNextFrame(r1);
+//       e1->applyNextFrame(r2);
+//     }
+//   }
+// }

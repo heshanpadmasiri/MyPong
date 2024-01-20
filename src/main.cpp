@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My pong");
   float tickSpeed = 1.0 / TARGET_FRAME_RATE;
   while (!WindowShouldClose()) {
-    applyReactionForces(&entities);
+    // applyReactionForces(&entities);
     for (Entity *entity : entities) {
       entity->update(tickSpeed);
     }
