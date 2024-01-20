@@ -53,6 +53,7 @@ private:
 class Entity {
 public:
   Entity(Vector startingPosition, long mass);
+  virtual ~Entity();
   void applyContiniously(ForceApplicator *force);
   void applyNextFrame(ForceApplicator *force);
   void update(float time);

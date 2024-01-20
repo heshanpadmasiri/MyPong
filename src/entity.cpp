@@ -123,6 +123,8 @@ void Entity::update(float time) {
   }
 }
 
+Entity::~Entity() {};
+
 ForceApplicator::~ForceApplicator() {}
 
 // Vector2 Entity::getAccelerationExcept(const ForceApplicator *except) {

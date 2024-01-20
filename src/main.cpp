@@ -46,6 +46,10 @@ int main(int argc, char *argv[]) {
   }
 
   CloseWindow();
-  // FIXME: deallocate objects
+  while (!entities.empty()) {
+    Entity *e = entities.back();
+    entities.pop_back();
+    delete e;
+  }
   return 0;
 }
