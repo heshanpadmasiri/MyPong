@@ -1,5 +1,6 @@
 #include "entity.h"
 #include "raylib.h"
+#include <cstddef>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 450
@@ -21,20 +22,29 @@ int main(int argc, char *argv[]) {
   float centerX = GetScreenWidth() / 2;
   Gravity *gravity = new Gravity();
 
-  Ball *ball = new Ball({centerX, 50}, 10000, RED, 15);
+  Ball *ball = new Ball({centerX, 50}, 100000, RED, 15);
   ball->applyContiniously(gravity);
-  Bat *bat = new Bat({centerX - BAT_WIDTH / 2, BAT_LINE}, BAT_COLOR, BAT_WIDTH, BAT_HEIGHT);
+  Bat *bat = new Bat({centerX - BAT_WIDTH / 2, BAT_LINE}, BAT_COLOR, BAT_WIDTH,
+                     BAT_HEIGHT);
 
   std::vector<Entity *> entities;
   entities.push_back(ball);
   entities.push_back(bat);
 
   SetTargetFPS(TARGET_FRAME_RATE);
-  float tickSpeed = 1.0 / TARGET_FRAME_RATE;
   while (!WindowShouldClose()) {
+    for (size_t i = 0; i < entities.size(); i++) {
+      for (size_t j = i + i; j < entities.size(); j++) {
+        Entity *e1 = entities.at(i);
+        Entity *e2 = entities.at(j);
+        if (isColliding(e1, e2)) {
+          resolveCollision(e2, e1);
+        }
+      }
+    }
     // applyReactionForces(&entities);
     for (Entity *entity : entities) {
-      entity->update(tickSpeed);
+      entity->update(GetFrameTime());
     }
 
     BeginDrawing();

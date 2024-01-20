@@ -3,21 +3,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <iostream>
 #include <sstream>
 
 #define DEBUG
-
-Vector2 inline vecSum(const Vector2 *v1, const Vector2 *v2) {
-  return Vector2{v1->x + v2->x, v1->y + v2->y};
-}
-
-Vector2 inline vecDiff(const Vector2 *v1, const Vector2 *v2) {
-  return Vector2{v1->x - v2->x, v1->y - v2->y};
-}
-
-Vector2 inline scalerMul(const Vector2 *vec, float s) {
-  return Vector2{vec->x * s, vec->y * s};
-}
 
 Vector::Vector(float x, float y) : x(x), y(y) {}
 Vector2 Vector::toRaylibVec() { return {this->x, this->y}; }
@@ -40,23 +29,17 @@ Vector operator*(const Vector &vec, float scalar) {
   return {vec.x * scalar, vec.y * scalar};
 }
 
-// FIXME: remove these
-float Vector2Length(const Vector2 &vec) {
-  return std::sqrt(vec.x * vec.x + vec.y * vec.y);
+Vector operator/(const Vector &vec, float scalar) {
+  return {vec.x / scalar, vec.y / scalar};
+}
+Vector operator/(const Vector &vec1, const Vector &vec2) {
+  return { vec1.x / vec2.x, vec1.y / vec2.y };
 }
 
-Vector2 Vector2Normalize(const Vector2 &vec) {
-  float length = Vector2Length(vec);
-  if (length != 0.0f) {
-    return {vec.x / length, vec.y / length};
-  }
-  return vec;
+std::ostream& operator<<(std::ostream& os, const Vector& vec) {
+    os << "(" << vec.x << ", " << vec.y << ")";
+    return os;
 }
-float Vector2DotProduct(const Vector2 &vec1, const Vector2 &vec2) {
-  return vec1.x * vec2.x + vec1.y * vec2.y;
-}
-
-// --
 
 inline Vector Gravity::getAcceleration() { return {0, Gravity::GRAVITY}; }
 
@@ -66,7 +49,7 @@ void drawDebug(Entity *entity) {
   DrawRectangleLinesEx(bb, 0.5, BLACK);
   Vector *velocity = entity->getVelocity();
   std::ostringstream oss;
-  oss << "Velocity (" << velocity->x << "," << velocity->y << ")";
+  oss << "Velocity " << *velocity;
   std::string str = oss.str();
   DrawText(str.c_str(), bb.x + bb.width + 10, bb.y, 10, BLACK);
 }
@@ -174,9 +157,10 @@ void Ball::draw() {
 #endif
 }
 
-// should the mass be 0 or inf
+
+// TODO: make bat weight an argument
 Bat::Bat(Vector startingPos, Color color, float width, float height)
-    : Entity(startingPos, 0), color(color), width(width), height(height) {}
+    : Entity(startingPos, 1000000), color(color), width(width), height(height) {}
 void Bat::draw() {
   Vector *position = this->getPosition();
   Rectangle rec = {position->x, position->y, this->width, this->height};
@@ -213,19 +197,36 @@ bool isColliding(Entity *e1, Entity *e2) {
   return isOverlapping(&bb1, &bb2);
 }
 
-// void applyReactionForces(const std::vector<Entity *> *entities) {
-//   for (size_t i = 0; i < entities->size(); i++) {
-//     for (size_t j = i + 1; j < entities->size(); j++) {
-//       Entity *e1 = entities->at(i);
-//       Entity *e2 = entities->at(j);
-//       if (!isColliding(e1, e2)) {
-//         continue;
-//       }
-//       // FIXME: when we are poping next frame force we must deallocate these
-//       ReactionForce *r1 = new ReactionForce(e2);
-//       ReactionForce *r2 = new ReactionForce(e1);
-//       e2->applyNextFrame(r1);
-//       e1->applyNextFrame(r2);
-//     }
-//   }
-// }
+Vector Vector::normalize() {
+  float len = lenght();
+  if (len == 0.0f) {
+    return { x, y };
+  }
+  return { x/len, y/len};
+}
+
+#define RESTITUITION_COEF 0.8f
+void resolveCollision(Entity *e1, Entity *e2) {
+  Vector v1 = *e1->getVelocity();
+  Vector v2 = *e2->getVelocity();
+  Vector relativeVelocity = v1 - v2;
+  if (relativeVelocity.x > 0 && relativeVelocity.y > 0) {
+    return;
+  }
+  Vector collisionNormal =
+      (*e1->getPosition() - *e2->getPosition()).normalize();
+  relativeVelocity = relativeVelocity * collisionNormal;
+  long m1 = e1->getMass();
+  long m2 = e2->getMass();
+  float t2 = (1.0f / m1 + 1.0f / m2);
+
+  Vector t1 = (relativeVelocity / t2);
+  Vector impluse =
+      t1 * -(1.0f + RESTITUITION_COEF);
+
+  std::ostringstream oss;
+  oss << "impluse :" << impluse << " relative velocity: " << relativeVelocity << "t1" << t1 << "t2" << t2;
+  TraceLog(LOG_INFO, oss.str().c_str());
+  e1->updateVelocity(v1 - impluse / (collisionNormal * m1));
+  e2->updateVelocity(v2 - impluse / (collisionNormal * m2));
+}

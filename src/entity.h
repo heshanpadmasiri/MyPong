@@ -11,11 +11,16 @@ public:
   Vector(float x, float y);
   Vector2 toRaylibVec();
   float lenght();
+  Vector normalize();
   // arithmetic
   friend Vector operator+(const Vector &vec1, const Vector &vec2);
   friend Vector operator-(const Vector &vec1, const Vector &vec2);
   friend Vector operator*(const Vector &vec1, const Vector &vec2);
+  friend bool operator<(const Vector &vec1, float scalar);
+  friend bool operator>(const Vector &vec1, float scalar);
   friend Vector operator*(const Vector &vec, float scalar);
+  friend Vector operator/(const Vector &vec, float scalar);
+  friend Vector operator/(const Vector &vec1, const Vector &vec2);
 
   float x;
   float y;
@@ -37,7 +42,6 @@ public:
 
 private:
   const float GRAVITY = 10;
-  Vector *acc;
 };
 
 // class ReactionForce : public ForceApplicator {
@@ -101,6 +105,5 @@ private:
 
 bool isColliding(Entity *e1, Entity *e2);
 
-void applyReactionForces(const std::vector<Entity *> *entities);
-
+void resolveCollision(Entity *e1, Entity *e2) ;
 #endif // ENTITY_H_
