@@ -17,19 +17,19 @@
 int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
+  InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My pong");
   float centerX = GetScreenWidth() / 2;
   Gravity *gravity = new Gravity();
 
   Ball *ball = new Ball({centerX, 50}, 10000, RED, 15);
   ball->applyContiniously(gravity);
-  Bat *bat = new Bat({centerX, BAT_LINE}, BAT_COLOR, BAT_WIDTH, BAT_HEIGHT);
+  Bat *bat = new Bat({centerX - BAT_WIDTH / 2, BAT_LINE}, BAT_COLOR, BAT_WIDTH, BAT_HEIGHT);
 
   std::vector<Entity *> entities;
   entities.push_back(ball);
   entities.push_back(bat);
 
   SetTargetFPS(TARGET_FRAME_RATE);
-  InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My pong");
   float tickSpeed = 1.0 / TARGET_FRAME_RATE;
   while (!WindowShouldClose()) {
     // applyReactionForces(&entities);
