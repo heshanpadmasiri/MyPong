@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
   float centerX = GetScreenWidth() / 2;
   Gravity *gravity = new Gravity();
 
-  Ball *ball = new Ball({centerX, 50}, 10, RED, 15);
+  Ball *ball = new Ball({centerX, 50}, 10000, RED, 15);
   ball->applyContiniously(gravity);
   Bat *bat = new Bat({centerX, BAT_LINE}, BAT_COLOR, BAT_WIDTH, BAT_HEIGHT);
 
@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My pong");
   float tickSpeed = 1.0 / TARGET_FRAME_RATE;
   while (!WindowShouldClose()) {
+    applyReactionForces(&entities);
     for (Entity *entity : entities) {
       entity->update(tickSpeed);
     }
@@ -45,5 +46,6 @@ int main(int argc, char *argv[]) {
   }
 
   CloseWindow();
+  // FIXME: deallocate objects
   return 0;
 }
