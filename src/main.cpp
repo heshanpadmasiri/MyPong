@@ -22,25 +22,33 @@ int main(int argc, char *argv[]) {
   float centerX = GetScreenWidth() / 2;
   Gravity *gravity = new Gravity();
 
-  Ball *ball = new Ball({centerX, 50}, 100000, RED, 15);
+  Ball *ball = new Ball({centerX, 50}, 100, RED, 15);
   ball->applyContiniously(gravity);
-  Bat *bat = new Bat({centerX - BAT_WIDTH / 2, BAT_LINE}, BAT_COLOR, BAT_WIDTH,
-                     BAT_HEIGHT);
+  Bat *bat = new Bat({centerX - BAT_WIDTH / 2, BAT_LINE}, 100, BAT_COLOR,
+                     BAT_WIDTH, BAT_HEIGHT);
 
   std::vector<Entity *> entities;
   entities.push_back(ball);
   entities.push_back(bat);
 
   SetTargetFPS(TARGET_FRAME_RATE);
+  // FIXME: collision debounce logic is too simple to handle multiple entities
+  int collisionDebounce = 0;
   while (!WindowShouldClose()) {
-    for (size_t i = 0; i < entities.size(); i++) {
-      for (size_t j = i + i; j < entities.size(); j++) {
-        Entity *e1 = entities.at(i);
-        Entity *e2 = entities.at(j);
-        if (isColliding(e1, e2)) {
-          resolveCollision(e2, e1);
+    if (collisionDebounce == 0) {
+      // TODO: factor out to seperate function
+      for (size_t i = 0; i < entities.size(); i++) {
+        for (size_t j = i + i; j < entities.size(); j++) {
+          Entity *e1 = entities.at(i);
+          Entity *e2 = entities.at(j);
+          if (isColliding(e1, e2)) {
+            collisionDebounce = 10;
+            resolveCollision(e2, e1);
+          }
         }
       }
+    } else {
+      collisionDebounce -= 1;
     }
     // applyReactionForces(&entities);
     for (Entity *entity : entities) {

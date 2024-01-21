@@ -27,7 +27,7 @@ private:
 
 class Entity {
 public:
-  Entity(Vector startingPosition, long mass);
+  Entity(long id, Vector startingPosition, long mass);
   virtual ~Entity();
   void applyContiniously(ForceApplicator *force);
   void applyNextFrame(ForceApplicator *force);
@@ -44,6 +44,7 @@ public:
   virtual Rectangle getBoundingBox() = 0;
 
 private:
+  long id;
   Vector position;
   Vector velocity;
   long mass;
@@ -64,7 +65,7 @@ private:
 
 class Bat : public Entity {
 public:
-  Bat(Vector startingPosition, Color color, float width, float height);
+  Bat(Vector startingPosition, long mass, Color color, float width, float height);
   void draw() override;
   Rectangle getBoundingBox() override;
 

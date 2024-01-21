@@ -1,6 +1,6 @@
 #include "entity.h"
-#include "raylib.h"
 #include "physics.h"
+#include "raylib.h"
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -14,9 +14,9 @@ inline Vector Gravity::getAcceleration() { return {0, Gravity::GRAVITY}; }
 void drawDebug(Entity *entity) {
   Rectangle bb = entity->getBoundingBox();
   DrawRectangleLinesEx(bb, 0.5, BLACK);
-  Vector *velocity = entity->getVelocity();
   std::ostringstream oss;
-  oss << "Velocity " << *velocity;
+  oss << "Velocity " << *entity->getVelocity() << "\n Position "
+      << *entity->getPosition();
   std::string str = oss.str();
   DrawText(str.c_str(), bb.x + bb.width + 10, bb.y, 10, BLACK);
 }
@@ -24,14 +24,11 @@ void drawDebug(Entity *entity) {
 
 void Gravity::apply(Entity *entity, float time) {
   Vector gravity = getAcceleration();
-  Vector displacement =
-      (*entity->getVelocity()) * time + gravity * time * time * 0.5;
-  entity->updatePosition(displacement + (*entity->getPosition()));
   entity->updateVelocity((*entity->getVelocity()) + gravity * time);
 }
 
-Entity::Entity(Vector startingPos, long mass)
-    : position(startingPos), velocity(0, 0), mass(mass) {}
+Entity::Entity(long id, Vector startingPos, long mass)
+    : id(id), position(startingPos), velocity(0, 0), mass(mass) {}
 
 void Entity::applyContiniously(ForceApplicator *force) {
   continiousForces.push_back(force);
@@ -51,30 +48,12 @@ void Entity::update(float time) {
   for (ForceApplicator *force : continiousForces) {
     force->apply(this, time);
   }
+  this->updatePosition(*this->getPosition() + (*this->getVelocity() * time));
 }
 
 Entity::~Entity(){};
 
 ForceApplicator::~ForceApplicator() {}
-
-// Vector2 Entity::getAccelerationExcept(const ForceApplicator *except) {
-//   Vector2 acceleration = {0, 0};
-//   for (ForceApplicator *force : nextFrameForces) {
-//     if (force == except) {
-//       continue;
-//     }
-//     Vector2 fa = force->getAcceleration();
-//     acceleration = vecSum(&acceleration, &fa);
-//   }
-//   for (ForceApplicator *force : continiousForces) {
-//     if (force == except) {
-//       continue;
-//     }
-//     Vector2 fa = force->getAcceleration();
-//     acceleration = vecSum(&acceleration, &fa);
-//   }
-//   return acceleration;
-// }
 
 long Entity::getMass() { return mass; }
 
@@ -86,7 +65,7 @@ void Entity::updatePosition(Vector pos) { position = pos; }
 void Entity::updateVelocity(Vector vel) { velocity = vel; }
 
 Ball::Ball(Vector startingPos, long mass, Color color, float radius)
-    : Entity(startingPos, mass), color(color), radius(radius) {}
+    : Entity(0, startingPos, mass), color(color), radius(radius) {}
 
 Rectangle Ball::getBoundingBox() {
   Vector *center = this->getPosition();
@@ -104,9 +83,8 @@ void Ball::draw() {
 #endif
 }
 
-// TODO: make bat weight an argument
-Bat::Bat(Vector startingPos, Color color, float width, float height)
-    : Entity(startingPos, 1000000), color(color), width(width), height(height) {
+Bat::Bat(Vector startingPos, long mass, Color color, float width, float height)
+    : Entity(1, startingPos, mass), color(color), width(width), height(height) {
 }
 void Bat::draw() {
   Vector *position = this->getPosition();
@@ -145,6 +123,7 @@ bool isColliding(Entity *e1, Entity *e2) {
 }
 
 #define RESTITUITION_COEF 0.8f
+#define WEIGHT_SCALE 0.01f
 void resolveCollision(Entity *e1, Entity *e2) {
   Vector v1 = *e1->getVelocity();
   Vector v2 = *e2->getVelocity();
@@ -155,17 +134,16 @@ void resolveCollision(Entity *e1, Entity *e2) {
   Vector collisionNormal =
       (*e1->getPosition() - *e2->getPosition()).normalize();
   relativeVelocity = relativeVelocity * collisionNormal;
-  long m1 = e1->getMass();
-  long m2 = e2->getMass();
-  float t2 = (1.0f / m1 + 1.0f / m2);
-
-  Vector t1 = (relativeVelocity / t2);
-  Vector impluse = t1 * -(1.0f + RESTITUITION_COEF);
-
+  float m1 = e1->getMass() * WEIGHT_SCALE;
+  float m2 = e2->getMass() * WEIGHT_SCALE;
+  Vector impluse = (relativeVelocity / ((1.0f / m1) + (1.0f / m2))) *
+                   -(1.0f + RESTITUITION_COEF);
+  e1->updateVelocity(v1 + impluse / (collisionNormal * m1));
+  e2->updateVelocity(v2 - impluse / (collisionNormal * m2));
+#ifdef DEBUG
   std::ostringstream oss;
   oss << "impluse :" << impluse << " relative velocity: " << relativeVelocity
-      << "t1" << t1 << "t2" << t2;
+      << "v1: " << *e1->getVelocity() << " v2 :" << *e2->getVelocity();
   TraceLog(LOG_INFO, oss.str().c_str());
-  e1->updateVelocity(v1 - impluse / (collisionNormal * m1));
-  e2->updateVelocity(v2 - impluse / (collisionNormal * m2));
+#endif
 }
