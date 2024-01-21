@@ -4,7 +4,9 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <sstream>
+#include <vector>
 
 #define DEBUG
 
@@ -40,6 +42,31 @@ void Entity::applyNextFrame(ForceApplicator *force) {
   nextFrameForces.push_back(force);
 }
 
+static inline float clipIfInRange(float newVal, float oldVal, float start,
+                                  float end) {
+  if (newVal == oldVal) {
+    return newVal;
+  }
+  if (newVal > start && newVal < end) {
+    // TODO: think about a better way to do this
+    if (abs(oldVal - end) < abs(oldVal - start)) {
+      return end + 0.000001f;
+    }
+    return start - 0.000001f;
+    // return oldVal > end ? end + CLIP_GAP : start - CLIP_GAP;
+  }
+  return newVal;
+}
+
+static Vector clipPositionChange(Vector newPosition, Vector oldPosition,
+                                 Rectangle boundingBox) {
+  float x = clipIfInRange(newPosition.x, oldPosition.x, boundingBox.x,
+                          boundingBox.x + boundingBox.width);
+  float y = clipIfInRange(newPosition.y, oldPosition.y, boundingBox.y,
+                          boundingBox.y + boundingBox.height);
+  return {x, y};
+}
+
 void Entity::update(float time) {
   // TODO: figure out if there is a way to use iterators to do this
   while (!nextFrameForces.empty()) {
@@ -51,8 +78,27 @@ void Entity::update(float time) {
   for (ForceApplicator *force : continiousForces) {
     force->apply(this, time);
   }
-  // FIXME: make sure to clip at bouding boxes
-  this->updatePosition(*this->getPosition() + (*this->getVelocity() * time));
+  Vector currentPosition = *this->getPosition();
+  Vector newPosition = currentPosition + (*this->getVelocity() * time);
+  // TODO: this needs to get checked if and only if positions are updating
+  while (!collidingEntities.empty()) {
+    Entity *other = collidingEntities.top();
+    collidingEntities.pop();
+#ifdef DEBUG
+    std::ostringstream oss;
+    Rectangle bb = other->getBoundingBox();
+    oss << "clipping overlapping boxes for " << id << " due to collision with "
+        << other->id << " target" << newPosition << "rectange corner" << bb.x
+        << "," << bb.y;
+#endif
+    newPosition = clipPositionChange(newPosition, currentPosition,
+                                     other->getBoundingBox());
+#ifdef DEBUG
+    oss << " result " << newPosition;
+    TraceLog(LOG_INFO, oss.str().c_str());
+#endif
+  }
+  this->updatePosition(newPosition);
 }
 
 bool Entity::couldSkipCollisionCheck() { return skipCollisionCheck; }
@@ -76,6 +122,14 @@ void Entity::updateVelocity(Vector vel) {
     return;
   }
   velocity = vel;
+}
+
+void Entity::addCollidingEntity(Entity *other) {
+  collidingEntities.push(other);
+}
+
+long Entity::getId() {
+  return id;
 }
 
 Ball::Ball(Vector startingPos, long mass, Color color, float radius)
@@ -129,18 +183,24 @@ FramePart::FramePart(Rectangle rectangle, long mass, Color color, long id)
 void FramePart::draw() { DrawRectangleRec(rectangle, color); }
 Rectangle FramePart::getBoundingBox() { return rectangle; }
 
-inline bool isOverlappingInner(const Rectangle *r1, const Rectangle *r2) {
-  float startX = r1->x;
-  float endX = startX + r1->width;
-  if (!(r2->x > startX && r2->x < endX)) {
-    return false;
-  }
-  float startY = r1->y;
-  float endY = startY + r1->height;
-  return r2->y > startY && r2->y < endY;
+static inline bool isInRange(float val, float start, float end) {
+  return val >= start && val <= end;
 }
 
-inline bool isOverlapping(const Rectangle *r1, const Rectangle *r2) {
+// FIXME:
+static inline bool isOverlappingInner(const Rectangle *r1,
+                                      const Rectangle *r2) {
+  float startX = r1->x;
+  float endX = startX + r1->width;
+  float startY = r1->y;
+  float endY = startY + r1->height;
+  return (isInRange(startX, r2->x, r2->x + r2->width) ||
+          isInRange(endX, r2->x, r2->x + r2->width)) &&
+         (isInRange(startY, r2->y, r2->y + r2->height) ||
+          isInRange(endY, r2->y, r2->y + r2->height));
+}
+
+static inline bool isOverlapping(const Rectangle *r1, const Rectangle *r2) {
   return isOverlappingInner(r1, r2) || isOverlappingInner(r2, r1);
 }
 
@@ -168,9 +228,11 @@ void resolveCollision(Entity *e1, Entity *e2) {
                    -(1.0f + RESTITUITION_COEF);
   e1->updateVelocity(v1 + impluse / (collisionNormal * m1));
   e2->updateVelocity(v2 - impluse / (collisionNormal * m2));
+  e1->addCollidingEntity(e2);
+  e2->addCollidingEntity(e1);
 #ifdef DEBUG
   std::ostringstream oss;
-  oss << "impluse :" << impluse << " relative velocity: " << relativeVelocity
+  oss << "resolving collision for" << e1->getId() << " ," << e2->getId() << " impluse :" << impluse << " relative velocity: " << relativeVelocity
       << "v1: " << *e1->getVelocity() << " v2 :" << *e2->getVelocity();
   TraceLog(LOG_INFO, oss.str().c_str());
 #endif

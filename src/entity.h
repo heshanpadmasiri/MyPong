@@ -31,6 +31,7 @@ public:
   virtual ~Entity();
   void applyContiniously(ForceApplicator *force);
   void applyNextFrame(ForceApplicator *force);
+  void addCollidingEntity(Entity *other);
   void update(float time);
   Vector *getPosition();
   Vector *getVelocity();
@@ -39,12 +40,13 @@ public:
 
   void updatePosition(Vector pos);
   void updateVelocity(Vector velocity);
+  long getId();
 
-  virtual void draw() = 0; // TODO: why
+  virtual void draw() = 0;
   virtual Rectangle getBoundingBox() = 0;
 
 protected:
-  bool immovable; // FIXME: we need another flag to say no collsion to avoid frame boxes colliding
+  bool immovable;
   bool skipCollisionCheck; // NOTE: If both objects has this flag we will skip this check
 
 private:
@@ -54,6 +56,7 @@ private:
   long mass;
   std::vector<ForceApplicator *> continiousForces;
   std::vector<ForceApplicator *> nextFrameForces;
+  std::stack<Entity *> collidingEntities;
 };
 
 class Ball : public Entity {

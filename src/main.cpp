@@ -40,7 +40,7 @@ void addFrame(std::vector<Entity *> *entities) {
 
 void handleCollisionChecks(std::vector<Entity *> *entities) {
   for (size_t i = 0; i < entities->size(); i++) {
-    for (size_t j = i + i; j < entities->size(); j++) {
+    for (size_t j = i + 1; j < entities->size(); j++) {
       Entity *e1 = entities->at(i);
       Entity *e2 = entities->at(j);
       if (e1->couldSkipCollisionCheck() && e2->couldSkipCollisionCheck()) {
@@ -71,17 +71,19 @@ int main(int argc, char *argv[]) {
   addFrame(&entities); // NOTE: frame id's start form 10
 
   SetTargetFPS(TARGET_FRAME_RATE);
-  int collisionDebounce = 0;
+  // int collisionDebounce = 0;
   while (!WindowShouldClose()) {
-    if (collisionDebounce == 0) {
-      // TODO: factor out to seperate function
-      handleCollisionChecks(&entities);
-      collisionDebounce =
-          10; // NOTE: this is to avoid doing collision checks every frame
-              // (instead we'll do it 6 times a second)
-    } else {
-      collisionDebounce -= 1;
-    }
+
+    handleCollisionChecks(&entities);
+    // if (collisionDebounce == 0) {
+    //   // TODO: factor out to seperate function
+    //   handleCollisionChecks(&entities);
+    //   collisionDebounce =
+    //       10; // NOTE: this is to avoid doing collision checks every frame
+    //           // (instead we'll do it 6 times a second)
+    // } else {
+    //   collisionDebounce -= 1;
+    // }
     // applyReactionForces(&entities);
     for (Entity *entity : entities) {
       entity->update(GetFrameTime());
