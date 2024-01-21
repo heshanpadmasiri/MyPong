@@ -5,26 +5,7 @@
 #include <vector>
 
 #include "raylib.h"
-
-class Vector {
-public:
-  Vector(float x, float y);
-  Vector2 toRaylibVec();
-  float lenght();
-  Vector normalize();
-  // arithmetic
-  friend Vector operator+(const Vector &vec1, const Vector &vec2);
-  friend Vector operator-(const Vector &vec1, const Vector &vec2);
-  friend Vector operator*(const Vector &vec1, const Vector &vec2);
-  friend bool operator<(const Vector &vec1, float scalar);
-  friend bool operator>(const Vector &vec1, float scalar);
-  friend Vector operator*(const Vector &vec, float scalar);
-  friend Vector operator/(const Vector &vec, float scalar);
-  friend Vector operator/(const Vector &vec1, const Vector &vec2);
-
-  float x;
-  float y;
-};
+#include "physics.h"
 
 class Entity;
 
@@ -43,16 +24,6 @@ public:
 private:
   const float GRAVITY = 10;
 };
-
-// class ReactionForce : public ForceApplicator {
-// public:
-//   ReactionForce(Entity *target);
-//   Vec2 getAcceleration() override;
-//   void apply(Entity *entity, float time) override;
-
-// private:
-//   Entity *target;
-// };
 
 class Entity {
 public:

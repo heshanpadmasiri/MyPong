@@ -1,45 +1,12 @@
 #include "entity.h"
 #include "raylib.h"
+#include "physics.h"
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
-#include <iostream>
 #include <sstream>
 
 #define DEBUG
-
-Vector::Vector(float x, float y) : x(x), y(y) {}
-Vector2 Vector::toRaylibVec() { return {this->x, this->y}; }
-
-inline float Vector::lenght() { return std::sqrt(x * x + y * y); }
-
-Vector operator+(const Vector &vec1, const Vector &vec2) {
-  return {vec1.x + vec2.x, vec1.y + vec2.y};
-}
-
-Vector operator-(const Vector &vec1, const Vector &vec2) {
-  return {vec1.x - vec2.x, vec1.y - vec2.y};
-}
-
-Vector operator*(const Vector &vec1, const Vector &vec2) {
-  return {vec1.x * vec2.x, vec1.y * vec2.y};
-}
-
-Vector operator*(const Vector &vec, float scalar) {
-  return {vec.x * scalar, vec.y * scalar};
-}
-
-Vector operator/(const Vector &vec, float scalar) {
-  return {vec.x / scalar, vec.y / scalar};
-}
-Vector operator/(const Vector &vec1, const Vector &vec2) {
-  return { vec1.x / vec2.x, vec1.y / vec2.y };
-}
-
-std::ostream& operator<<(std::ostream& os, const Vector& vec) {
-    os << "(" << vec.x << ", " << vec.y << ")";
-    return os;
-}
 
 inline Vector Gravity::getAcceleration() { return {0, Gravity::GRAVITY}; }
 
@@ -62,26 +29,6 @@ void Gravity::apply(Entity *entity, float time) {
   entity->updatePosition(displacement + (*entity->getPosition()));
   entity->updateVelocity((*entity->getVelocity()) + gravity * time);
 }
-
-// ReactionForce::ReactionForce(Entity *target) : target(target){};
-
-// Vector2 ReactionForce::getAcceleration() {
-//   Vector2 entityAcc = target->getAccelerationExcept(this);
-//   return scalerMul(&entityAcc, -1);
-// }
-
-// void ReactionForce::apply(Entity *entity, float time) {
-//   const float RESTITUTION_COEF = 0.8f;
-//   // stop the object from moving
-//   // NOTE: this means reactions must be the first force to be applied, this
-//   is
-//   // correct since Reaction is a nextFrame force
-//   entity->updateVelocity({0, 0});
-//   Vector2 acc = getAcceleration();
-//   Vector2 displacement = scalerMul(&acc, time * time);
-//   entity->updatePosition(vecSum(&displacement, entity->getPosition()));
-//   entity->updateVelocity(scalerMul(&acc, time));
-// }
 
 Entity::Entity(Vector startingPos, long mass)
     : position(startingPos), velocity(0, 0), mass(mass) {}
@@ -106,7 +53,7 @@ void Entity::update(float time) {
   }
 }
 
-Entity::~Entity() {};
+Entity::~Entity(){};
 
 ForceApplicator::~ForceApplicator() {}
 
@@ -157,10 +104,10 @@ void Ball::draw() {
 #endif
 }
 
-
 // TODO: make bat weight an argument
 Bat::Bat(Vector startingPos, Color color, float width, float height)
-    : Entity(startingPos, 1000000), color(color), width(width), height(height) {}
+    : Entity(startingPos, 1000000), color(color), width(width), height(height) {
+}
 void Bat::draw() {
   Vector *position = this->getPosition();
   Rectangle rec = {position->x, position->y, this->width, this->height};
@@ -197,14 +144,6 @@ bool isColliding(Entity *e1, Entity *e2) {
   return isOverlapping(&bb1, &bb2);
 }
 
-Vector Vector::normalize() {
-  float len = lenght();
-  if (len == 0.0f) {
-    return { x, y };
-  }
-  return { x/len, y/len};
-}
-
 #define RESTITUITION_COEF 0.8f
 void resolveCollision(Entity *e1, Entity *e2) {
   Vector v1 = *e1->getVelocity();
@@ -221,11 +160,11 @@ void resolveCollision(Entity *e1, Entity *e2) {
   float t2 = (1.0f / m1 + 1.0f / m2);
 
   Vector t1 = (relativeVelocity / t2);
-  Vector impluse =
-      t1 * -(1.0f + RESTITUITION_COEF);
+  Vector impluse = t1 * -(1.0f + RESTITUITION_COEF);
 
   std::ostringstream oss;
-  oss << "impluse :" << impluse << " relative velocity: " << relativeVelocity << "t1" << t1 << "t2" << t2;
+  oss << "impluse :" << impluse << " relative velocity: " << relativeVelocity
+      << "t1" << t1 << "t2" << t2;
   TraceLog(LOG_INFO, oss.str().c_str());
   e1->updateVelocity(v1 - impluse / (collisionNormal * m1));
   e2->updateVelocity(v2 - impluse / (collisionNormal * m2));
