@@ -34,14 +34,18 @@ public:
   void update(float time);
   Vector *getPosition();
   Vector *getVelocity();
-  // Vec2 getAccelerationExcept(const ForceApplicator *force);
   long getMass();
+  bool couldSkipCollisionCheck();
 
   void updatePosition(Vector pos);
   void updateVelocity(Vector velocity);
 
   virtual void draw() = 0; // TODO: why
   virtual Rectangle getBoundingBox() = 0;
+
+protected:
+  bool immovable; // FIXME: we need another flag to say no collsion to avoid frame boxes colliding
+  bool skipCollisionCheck; // NOTE: If both objects has this flag we will skip this check
 
 private:
   long id;
@@ -73,6 +77,17 @@ private:
   Color color;
   float width;
   float height;
+};
+
+class FramePart: public Entity {
+public:
+  FramePart(Rectangle rectange, long mass, Color color, long id); // NOTE: they need mass so impact model works
+  void draw() override;
+  Rectangle getBoundingBox() override;
+
+private:
+  Color color;
+  Rectangle rectangle;
 };
 
 bool isColliding(Entity *e1, Entity *e2);

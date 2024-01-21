@@ -22,13 +22,16 @@ void drawDebug(Entity *entity) {
 }
 #endif
 
+ForceApplicator::~ForceApplicator() {}
+
 void Gravity::apply(Entity *entity, float time) {
   Vector gravity = getAcceleration();
   entity->updateVelocity((*entity->getVelocity()) + gravity * time);
 }
 
 Entity::Entity(long id, Vector startingPos, long mass)
-    : id(id), position(startingPos), velocity(0, 0), mass(mass) {}
+    : immovable(false), skipCollisionCheck(false), id(id),
+      position(startingPos), velocity(0, 0), mass(mass) {}
 
 void Entity::applyContiniously(ForceApplicator *force) {
   continiousForces.push_back(force);
@@ -48,21 +51,32 @@ void Entity::update(float time) {
   for (ForceApplicator *force : continiousForces) {
     force->apply(this, time);
   }
+  // FIXME: make sure to clip at bouding boxes
   this->updatePosition(*this->getPosition() + (*this->getVelocity() * time));
 }
 
-Entity::~Entity(){};
+bool Entity::couldSkipCollisionCheck() { return skipCollisionCheck; }
 
-ForceApplicator::~ForceApplicator() {}
+Entity::~Entity(){};
 
 long Entity::getMass() { return mass; }
 
 Vector *Entity::getPosition() { return &position; }
 
 Vector *Entity::getVelocity() { return &velocity; }
-void Entity::updatePosition(Vector pos) { position = pos; }
+void Entity::updatePosition(Vector pos) {
+  if (immovable) {
+    return;
+  }
+  position = pos;
+}
 
-void Entity::updateVelocity(Vector vel) { velocity = vel; }
+void Entity::updateVelocity(Vector vel) {
+  if (immovable) {
+    return;
+  }
+  velocity = vel;
+}
 
 Ball::Ball(Vector startingPos, long mass, Color color, float radius)
     : Entity(0, startingPos, mass), color(color), radius(radius) {}
@@ -100,6 +114,20 @@ Rectangle Bat::getBoundingBox() {
   Vector *position = this->getPosition();
   return {position->x, position->y, this->width, this->height};
 }
+
+inline Vector rectangeCenter(const Rectangle *r) {
+  return {r->x + (r->width / 2), r->y + (r->height / 2)};
+}
+
+FramePart::FramePart(Rectangle rectangle, long mass, Color color, long id)
+    : Entity(id, rectangeCenter(&rectangle), mass), color(color),
+      rectangle(rectangle) {
+  immovable = true;
+  skipCollisionCheck = true;
+}
+
+void FramePart::draw() { DrawRectangleRec(rectangle, color); }
+Rectangle FramePart::getBoundingBox() { return rectangle; }
 
 inline bool isOverlappingInner(const Rectangle *r1, const Rectangle *r2) {
   float startX = r1->x;

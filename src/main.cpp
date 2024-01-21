@@ -1,6 +1,7 @@
 #include "entity.h"
 #include "raylib.h"
 #include <cstddef>
+#include <vector>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 450
@@ -14,6 +15,43 @@
 
 #define BAT_COLOR BLACK
 #define TARGET_FRAME_RATE 60
+
+#define FRAME_THICKNESS 10
+#define FRAME_PART_WEIGHT 1000
+#define FRAME_COLOR MAGENTA
+
+void addFrame(std::vector<Entity *> *entities) {
+  Rectangle frameBoxes[] = {
+      {0, 0, WINDOW_WIDTH, FRAME_THICKNESS}, // top
+      {0, FRAME_THICKNESS, FRAME_THICKNESS,
+       WINDOW_HEIGHT - FRAME_THICKNESS}, // left
+      {FRAME_THICKNESS, WINDOW_HEIGHT - FRAME_THICKNESS,
+       WINDOW_WIDTH - FRAME_THICKNESS, FRAME_THICKNESS}, // bottom
+      {WINDOW_WIDTH - FRAME_THICKNESS, FRAME_THICKNESS, FRAME_THICKNESS,
+       WINDOW_WIDTH - 2 * FRAME_THICKNESS} // right
+  };
+  for (int i = 0; i < 4; i++) {
+    Rectangle rectangle = frameBoxes[i];
+    FramePart *part =
+        new FramePart(rectangle, FRAME_PART_WEIGHT, FRAME_COLOR, 10 + i);
+    entities->push_back(part);
+  }
+}
+
+void handleCollisionChecks(std::vector<Entity *> *entities) {
+  for (size_t i = 0; i < entities->size(); i++) {
+    for (size_t j = i + i; j < entities->size(); j++) {
+      Entity *e1 = entities->at(i);
+      Entity *e2 = entities->at(j);
+      if (e1->couldSkipCollisionCheck() && e2->couldSkipCollisionCheck()) {
+        continue;
+      }
+      if (isColliding(e1, e2)) {
+        resolveCollision(e2, e1);
+      }
+    }
+  }
+}
 
 int main(int argc, char *argv[]) {
   (void)argc;
@@ -30,23 +68,17 @@ int main(int argc, char *argv[]) {
   std::vector<Entity *> entities;
   entities.push_back(ball);
   entities.push_back(bat);
+  addFrame(&entities); // NOTE: frame id's start form 10
 
   SetTargetFPS(TARGET_FRAME_RATE);
-  // FIXME: collision debounce logic is too simple to handle multiple entities
   int collisionDebounce = 0;
   while (!WindowShouldClose()) {
     if (collisionDebounce == 0) {
       // TODO: factor out to seperate function
-      for (size_t i = 0; i < entities.size(); i++) {
-        for (size_t j = i + i; j < entities.size(); j++) {
-          Entity *e1 = entities.at(i);
-          Entity *e2 = entities.at(j);
-          if (isColliding(e1, e2)) {
-            collisionDebounce = 10;
-            resolveCollision(e2, e1);
-          }
-        }
-      }
+      handleCollisionChecks(&entities);
+      collisionDebounce =
+          10; // NOTE: this is to avoid doing collision checks every frame
+              // (instead we'll do it 6 times a second)
     } else {
       collisionDebounce -= 1;
     }
