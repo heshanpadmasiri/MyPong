@@ -10,8 +10,6 @@
 
 #define DEBUG
 
-inline Vector Gravity::getAcceleration() { return {0, Gravity::GRAVITY}; }
-
 #ifdef DEBUG
 void drawDebug(Entity *entity) {
   Rectangle bb = entity->getBoundingBox();
@@ -25,10 +23,33 @@ void drawDebug(Entity *entity) {
 #endif
 
 ForceApplicator::~ForceApplicator() {}
-
-void Gravity::apply(Entity *entity, float time) {
+void ForceApplicator::apply(Entity *entity, float time) {
   Vector gravity = getAcceleration();
   entity->updateVelocity((*entity->getVelocity()) + gravity * time);
+}
+
+Vector Gravity::getAcceleration() { return {0, Gravity::GRAVITY}; }
+
+MotionForce::MotionForce(float pressureScale, Direction direction)
+    : pressureScale(pressureScale), direction(direction) {}
+
+Vector MotionForce::getAcceleration() {
+  Vector base = {0, 0};
+  switch (direction) {
+  case UP:
+    base = {0, -1};
+    break;
+  case DOWN:
+    base = {0, 1};
+    break;
+  case LEFT:
+    base = {-1, 0};
+    break;
+  case RIGHT:
+    base = {1, 0};
+    break;
+  }
+  return base * pressureScale;
 }
 
 Entity::Entity(long id, Vector startingPos, long mass)
@@ -138,9 +159,7 @@ void Entity::addCollidingEntity(Entity *other) {
   collidingEntities.push(other);
 }
 
-long Entity::getId() {
-  return id;
-}
+long Entity::getId() { return id; }
 
 Ball::Ball(Vector startingPos, long mass, Color color, float radius)
     : Entity(0, startingPos, mass), color(color), radius(radius) {}
@@ -242,7 +261,8 @@ void resolveCollision(Entity *e1, Entity *e2) {
   e2->addCollidingEntity(e1);
 #ifdef DEBUG
   std::ostringstream oss;
-  oss << "resolving collision for" << e1->getId() << " ," << e2->getId() << " impluse :" << impluse << " relative velocity: " << relativeVelocity
+  oss << "resolving collision for" << e1->getId() << " ," << e2->getId()
+      << " impluse :" << impluse << " relative velocity: " << relativeVelocity
       << "v1: " << *e1->getVelocity() << " v2 :" << *e2->getVelocity();
   TraceLog(LOG_INFO, oss.str().c_str());
 #endif
