@@ -1,5 +1,5 @@
 CC := clang++
-CFLAGS := -Wall -std=c++11 $(shell pkg-config --cflags raylib) -g
+CFLAGS := -Wall -Wextra -Wpedantic -std=c++11 $(shell pkg-config --cflags raylib) -g
 LDFLAGS := $(shell pkg-config --libs raylib)
 
 # Directories
