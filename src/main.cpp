@@ -20,6 +20,8 @@
 #define FRAME_PART_WEIGHT 1000
 #define FRAME_COLOR MAGENTA
 
+#define PRESSURE_SCALE 10.0f
+
 void addFrame(std::vector<Entity *> *entities) {
   Rectangle frameBoxes[] = {
       {0, 0, WINDOW_WIDTH, FRAME_THICKNESS}, // top
@@ -53,6 +55,23 @@ void handleCollisionChecks(std::vector<Entity *> *entities) {
   }
 }
 
+void handleUserInputs(Bat *bat) {
+  MotionForce *motionForce = nullptr;
+  if (IsKeyDown(KEY_H)) {
+    motionForce = new MotionForce(PRESSURE_SCALE, LEFT);
+  } else if (IsKeyDown(KEY_L)) {
+    motionForce = new MotionForce(PRESSURE_SCALE, RIGHT);
+  } else if (IsKeyDown(KEY_J)) {
+    motionForce = new MotionForce(PRESSURE_SCALE, DOWN);
+  } else if (IsKeyDown(KEY_K)) {
+    motionForce = new MotionForce(PRESSURE_SCALE, UP);
+  }
+
+  if (motionForce != nullptr) {
+    bat->applyNextFrame(motionForce);
+  }
+}
+
 int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
@@ -71,6 +90,7 @@ int main(int argc, char *argv[]) {
 
   SetTargetFPS(TARGET_FRAME_RATE);
   while (!WindowShouldClose()) {
+    handleUserInputs(bat);
     handleCollisionChecks(&entities);
     for (Entity *entity : entities) {
       entity->update(GetFrameTime());
