@@ -58,10 +58,9 @@ int main(int argc, char *argv[]) {
   (void)argv;
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "My pong");
   float centerX = GetScreenWidth() / 2;
-  Gravity *gravity = new Gravity();
 
   Ball *ball = new Ball({centerX, 50}, 100, RED, 15);
-  ball->applyContiniously(gravity);
+  ball->applyContiniously(new Gravity());
   Bat *bat = new Bat({centerX - BAT_WIDTH / 2, BAT_LINE}, 100, BAT_COLOR,
                      BAT_WIDTH, BAT_HEIGHT);
 
@@ -71,20 +70,8 @@ int main(int argc, char *argv[]) {
   addFrame(&entities); // NOTE: frame id's start form 10
 
   SetTargetFPS(TARGET_FRAME_RATE);
-  // int collisionDebounce = 0;
   while (!WindowShouldClose()) {
-
     handleCollisionChecks(&entities);
-    // if (collisionDebounce == 0) {
-    //   // TODO: factor out to seperate function
-    //   handleCollisionChecks(&entities);
-    //   collisionDebounce =
-    //       10; // NOTE: this is to avoid doing collision checks every frame
-    //           // (instead we'll do it 6 times a second)
-    // } else {
-    //   collisionDebounce -= 1;
-    // }
-    // applyReactionForces(&entities);
     for (Entity *entity : entities) {
       entity->update(GetFrameTime());
     }

@@ -103,7 +103,17 @@ void Entity::update(float time) {
 
 bool Entity::couldSkipCollisionCheck() { return skipCollisionCheck; }
 
-Entity::~Entity(){};
+Entity::~Entity() {
+  while (!nextFrameForces.empty()) {
+    ForceApplicator *force = nextFrameForces.back();
+    nextFrameForces.pop_back();
+    delete force;
+  }
+  for (ForceApplicator *force : continiousForces) {
+    delete force;
+  }
+  continiousForces.clear();
+};
 
 long Entity::getMass() { return mass; }
 
