@@ -1,7 +1,6 @@
-#include "engine.h"
-#include "entity.h"
-#include "raylib.h"
-#include <cstddef>
+#include "../lib/engine.h"
+#include "../lib/entity.h"
+#include "../lib/raylib.h"
 #include <vector>
 
 #define WINDOW_WIDTH 800
@@ -23,7 +22,7 @@
 
 #define PRESSURE_SCALE 100.0f
 
-void addFrame(Engine *engine) {
+void addFrame(std::vector<Entity*>* entities) {
   Rectangle frameBoxes[] = {
       {0, 0, WINDOW_WIDTH, FRAME_THICKNESS}, // top
       {0, FRAME_THICKNESS, FRAME_THICKNESS,
@@ -37,41 +36,10 @@ void addFrame(Engine *engine) {
     Rectangle rectangle = frameBoxes[i];
     FramePart *part =
         new FramePart(rectangle, FRAME_PART_WEIGHT, FRAME_COLOR, 10 + i);
-    engine->addEntity(part);
+    entities->push_back(part);
   }
 }
 
-// void handleCollisionChecks(std::vector<Entity *> *entities) {
-//   for (size_t i = 0; i < entities->size(); i++) {
-//     for (size_t j = i + 1; j < entities->size(); j++) {
-//       Entity *e1 = entities->at(i);
-//       Entity *e2 = entities->at(j);
-//       if (e1->couldSkipCollisionCheck() && e2->couldSkipCollisionCheck()) {
-//         continue;
-//       }
-//       if (isColliding(e1, e2)) {
-//         resolveCollision(e2, e1);
-//       }
-//     }
-//   }
-// }
-
-// void handleUserInputs(Bat *bat) {
-//   MotionForce *motionForce = nullptr;
-//   if (IsKeyDown(KEY_H)) {
-//     motionForce = new MotionForce(PRESSURE_SCALE, LEFT);
-//   } else if (IsKeyDown(KEY_L)) {
-//     motionForce = new MotionForce(PRESSURE_SCALE, RIGHT);
-//   } else if (IsKeyDown(KEY_J)) {
-//     motionForce = new MotionForce(PRESSURE_SCALE, DOWN);
-//   } else if (IsKeyDown(KEY_K)) {
-//     motionForce = new MotionForce(PRESSURE_SCALE, UP);
-//   }
-
-//   if (motionForce != nullptr) {
-//     bat->applyNextFrame(motionForce);
-//   }
-// }
 void handleBatInputs(Entity *bat) {
   MotionForce *motionForce = nullptr;
   if (IsKeyDown(KEY_H)) {
@@ -102,16 +70,21 @@ int main(int argc, char *argv[]) {
 
 
   SetTargetFPS(TARGET_FRAME_RATE);
-  Engine *engine = new Engine();
-  engine->addEntity(ball);
-  engine->addEntity(bat);
-  engine->setInputHandler(bat, &handleBatInputs);
-  addFrame(engine); // NOTE: frame id's start form 10
+  std::vector<Entity *> entities;
+  entities.push_back(ball);
+  entities.push_back(bat);
+
+  std::vector<InputHandler*> inputHandlers;
+  InputHandler *batInput = new InputHandler(bat, &handleBatInputs);
+  inputHandlers.push_back(batInput);
+  addFrame(&entities); // NOTE: frame id's start form 10
+  GameState state = { entities, inputHandlers};
 
   while (!WindowShouldClose()) {
-    engine->renderFrame();
+    // TODO: reload the dynamic library
+    renderFrame(&state);
   }
-  delete engine;
+  // TODO: clean up game state
   CloseWindow();
   return 0;
 }
