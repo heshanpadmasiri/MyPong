@@ -1,4 +1,4 @@
-CC := clang++
+CXX := clang++
 CFLAGS := -Wall -Wextra -Wpedantic -std=c++11 $(shell pkg-config --cflags raylib) -fPIC -g
 LDFLAGS := $(shell pkg-config --libs raylib)
 LIBFLAGS := -shared
@@ -14,7 +14,7 @@ SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 LIBS := $(wildcard $(LIB_DIR)/*.cpp)
 OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
 LIB_OBJS := $(patsubst $(LIB_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(LIBS))
-LIB := $(BUILD_DIR)/lib.so
+LIB := $(BIN_DIR)/libengine.dylib
 TARGET := $(BIN_DIR)/my_pong
 
 # Compile and link
@@ -23,22 +23,23 @@ all: $(TARGET)
 lib: $(LIB)
 
 $(TARGET): $(OBJS) $(LIB)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS) -L./bin -lengine -ldl
 
 # Compile source files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 
+.PRECIOUS: $(LIB)
 $(LIB): $(LIB_OBJS)
-	$(CC) $(LIBFLAGS) -o $@ $^ $(LDFLAGS)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) $(LIBFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Compile lib files
 $(BUILD_DIR)/%.o: $(LIB_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 # Clean build artifacts
 clean:
@@ -51,4 +52,3 @@ run: $(TARGET)
 # Phony targets
 .PHONY: clean run all lib
 
-.PRECIOUS: $(LIB) lib

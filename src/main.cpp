@@ -1,6 +1,8 @@
 #include "../lib/engine.h"
 #include "../lib/entity.h"
 #include "../lib/raylib.h"
+#include <dlfcn.h>
+#include <iostream>
 #include <vector>
 
 #define WINDOW_WIDTH 800
@@ -22,7 +24,9 @@
 
 #define PRESSURE_SCALE 100.0f
 
-void addFrame(std::vector<Entity*>* entities) {
+#define ENGINE "./bin/libengine.dylib"
+
+void addWindowFrame(std::vector<Entity *> *entities) {
   Rectangle frameBoxes[] = {
       {0, 0, WINDOW_WIDTH, FRAME_THICKNESS}, // top
       {0, FRAME_THICKNESS, FRAME_THICKNESS,
@@ -40,7 +44,7 @@ void addFrame(std::vector<Entity*>* entities) {
   }
 }
 
-void handleBatInputs(Entity *bat) {
+bool handleBatInputs(Entity *bat) {
   MotionForce *motionForce = nullptr;
   if (IsKeyDown(KEY_H)) {
     motionForce = new MotionForce(PRESSURE_SCALE, LEFT);
@@ -54,7 +58,18 @@ void handleBatInputs(Entity *bat) {
 
   if (motionForce != nullptr) {
     bat->applyNextFrame(motionForce);
+    return true;
   }
+  return false;
+}
+
+void *getLibHandle() {
+  void *handle = dlopen(ENGINE, RTLD_NOW);
+  if (!handle) {
+    std::cerr << "Error loading library: " << dlerror() << std::endl;
+    return nullptr;
+  }
+  return handle;
 }
 
 int main(int argc, char *argv[]) {
@@ -68,23 +83,23 @@ int main(int argc, char *argv[]) {
   Bat *bat = new Bat({centerX - BAT_WIDTH / 2, BAT_LINE}, 100, BAT_COLOR,
                      BAT_WIDTH, BAT_HEIGHT);
 
-
   SetTargetFPS(TARGET_FRAME_RATE);
   std::vector<Entity *> entities;
   entities.push_back(ball);
   entities.push_back(bat);
 
-  std::vector<InputHandler*> inputHandlers;
-  InputHandler *batInput = new InputHandler(bat, &handleBatInputs);
-  inputHandlers.push_back(batInput);
-  addFrame(&entities); // NOTE: frame id's start form 10
-  GameState state = { entities, inputHandlers};
+  addWindowFrame(&entities); // NOTE: frame id's start form 10
+  Engine *engine = new Engine;
+  engine->addEntities(&entities);
+  engine->setInputHandler(bat, &handleBatInputs);
 
   while (!WindowShouldClose()) {
-    // TODO: reload the dynamic library
-    renderFrame(&state);
+    engine->renderFrame();
   }
-  // TODO: clean up game state
+  for (Entity* each : entities) {
+    delete each;
+  }
+  delete engine;
   CloseWindow();
   return 0;
 }

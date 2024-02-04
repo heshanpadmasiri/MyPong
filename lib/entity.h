@@ -49,6 +49,7 @@ public:
   Vector *getVelocity();
   long getMass();
   bool couldSkipCollisionCheck();
+  static Entity refresh(Entity* entity);
 
   void updatePosition(Vector pos);
   void updateVelocity(Vector velocity);

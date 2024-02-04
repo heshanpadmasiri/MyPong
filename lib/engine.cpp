@@ -1,10 +1,52 @@
 #include "engine.h"
 #include "entity.h"
 #include "raylib.h"
-#include <utility>
+#include <cstdio>
 #include <vector>
 
-void handleCollisions(std::vector<Entity *> entities) {
+#define INPUT_DEBOUNCE 10;
+
+void Engine::renderFrame() {
+  handleInputs();
+  handleCollisions();
+  for (Entity *entity : entities) {
+    entity->update(GetFrameTime());
+  }
+  BeginDrawing();
+  ClearBackground(RAYWHITE);
+  for (Entity *entity : entities) {
+    entity->draw();
+  }
+  EndDrawing();
+}
+
+void Engine::addEntity(Entity *entity) {
+  entities.push_back(entity);
+}
+
+void Engine::addEntities(std::vector<Entity *> *entities) {
+  for (Entity* each: *entities) {
+    addEntity(each);
+  }
+}
+
+void Engine::setInputHandler(Entity *entity, InputHandler handler) {
+  InputHandlerState *state = new InputHandlerState;
+  state->entity = entity;
+  state->handler = handler;
+  state->debounceFrames = 0;
+  inputHandlers.push_back(state);
+}
+
+Engine::~Engine() {
+  while (!inputHandlers.empty()) {
+    InputHandlerState *each = inputHandlers.back();
+    delete each;
+    inputHandlers.pop_back();
+  }
+}
+
+void Engine::handleCollisions() {
   for (size_t i = 0; i < entities.size(); i++) {
     for (size_t j = i + 1; j < entities.size(); j++) {
       Entity *e1 = entities.at(i);
@@ -20,19 +62,14 @@ void handleCollisions(std::vector<Entity *> entities) {
   }
 }
 
-void renderFrame(GameState *state) {
-  for (auto handlerPair : state->inputHandlers) {
-    handlerPair->second(handlerPair->first);
+void Engine::handleInputs() {
+  for (InputHandlerState *each : inputHandlers) {
+    if (each->debounceFrames > 0) {
+      each->debounceFrames--;
+      continue;
+    }
+    if (each->handler(each->entity)) {
+      each->debounceFrames = INPUT_DEBOUNCE;
+    }
   }
-  handleCollisions(state->entities);
-  for (Entity *entity : state->entities) {
-    entity->update(GetFrameTime());
-  }
-  // TODO: handle collision
-  BeginDrawing();
-  ClearBackground(RAYWHITE);
-  for (Entity *entity : state->entities) {
-    entity->draw();
-  }
-  EndDrawing();
 }

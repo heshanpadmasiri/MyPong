@@ -2,19 +2,30 @@
 #define ENGINE_H_
 
 #include "entity.h"
-#include <utility>
+#include <cstdint>
 #include <vector>
 
-typedef void (*InputHandlerFn)(Entity *);
-typedef std::pair<Entity *, InputHandlerFn> InputHandler;
+typedef bool (*InputHandler)(Entity *);
 
-struct GameState {
-  std::vector<Entity *> entities;
-  std::vector<InputHandler *> inputHandlers;
+struct InputHandlerState {
+  uint64_t debounceFrames;
+  Entity *entity;
+  InputHandler handler;
 };
 
-typedef void (*RenderFn)(GameState*);
+class Engine {
+public:
+  void renderFrame();
+  void addEntity(Entity *);
+  void addEntities(std::vector<Entity *> *entities);
+  void setInputHandler(Entity *entity, InputHandler handler);
+  ~Engine();
 
-void renderFrame(GameState *state);
+private:
+  void handleCollisions();
+  void handleInputs();
+  std::vector<Entity *> entities;
+  std::vector<InputHandlerState*> inputHandlers;
+};
 
 #endif // ENGINE_H_

@@ -2,8 +2,6 @@
 #include "physics.h"
 #include "raylib.h"
 #include <cmath>
-#include <cstddef>
-#include <cstdio>
 #include <cstdlib>
 #include <sstream>
 #include <vector>
@@ -18,7 +16,7 @@ void drawDebug(Entity *entity) {
   oss << "Velocity " << *entity->getVelocity() << "\n Position "
       << *entity->getPosition();
   std::string str = oss.str();
-  DrawText(str.c_str(), bb.x + bb.width + 10, bb.y, 10, BLACK);
+  DrawText(str.c_str(), bb.x + bb.width + 10, bb.y, 10, RED);
 }
 #endif
 
@@ -106,17 +104,17 @@ void Entity::update(float time) {
     Entity *other = collidingEntities.top();
     collidingEntities.pop();
 #ifdef DEBUG
-    std::ostringstream oss;
-    Rectangle bb = other->getBoundingBox();
-    oss << "clipping overlapping boxes for " << id << " due to collision with "
-        << other->id << " target" << newPosition << "rectange corner" << bb.x
-        << "," << bb.y;
+    // std::ostringstream oss;
+    // Rectangle bb = other->getBoundingBox();
+    // oss << "clipping overlapping boxes for " << id << " due to collision with "
+    //     << other->id << " target" << newPosition << "rectange corner" << bb.x
+    //     << "," << bb.y;
 #endif
     newPosition = clipPositionChange(newPosition, currentPosition,
                                      other->getBoundingBox());
 #ifdef DEBUG
-    oss << " result " << newPosition;
-    TraceLog(LOG_INFO, oss.str().c_str());
+    // oss << " result " << newPosition;
+    // TraceLog(LOG_INFO, oss.str().c_str());
 #endif
   }
   this->updatePosition(newPosition);
@@ -259,11 +257,11 @@ void resolveCollision(Entity *e1, Entity *e2) {
   e2->updateVelocity(v2 - impluse / (collisionNormal * m2));
   e1->addCollidingEntity(e2);
   e2->addCollidingEntity(e1);
-#ifdef DEBUG
-  std::ostringstream oss;
-  oss << "resolving collision for" << e1->getId() << " ," << e2->getId()
-      << " impluse :" << impluse << " relative velocity: " << relativeVelocity
-      << "v1: " << *e1->getVelocity() << " v2 :" << *e2->getVelocity();
-  TraceLog(LOG_INFO, oss.str().c_str());
-#endif
+// #ifdef DEBUG
+//   std::ostringstream oss;
+//   oss << "resolving collision for" << e1->getId() << " ," << e2->getId()
+//       << " impluse :" << impluse << " relative velocity: " << relativeVelocity
+//       << "v1: " << *e1->getVelocity() << " v2 :" << *e2->getVelocity();
+//   TraceLog(LOG_INFO, oss.str().c_str());
+// #endif
 }
